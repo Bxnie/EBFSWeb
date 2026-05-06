@@ -1,0 +1,134 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>Electric Bristol — Front Screen Loop</title>
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Anton&family=Bebas+Neue&family=Space+Grotesk:wght@400;500;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet" />
+<style>
+  html, body {
+    margin: 0; padding: 0;
+    background: #000;
+    color: #fff;
+    font-family: 'Space Grotesk', sans-serif;
+    overflow: hidden;
+    width: 100vw; height: 100vh;
+  }
+  * { box-sizing: border-box; }
+  .capture-stage {
+    position: fixed; inset: 0;
+    display: flex; align-items: center; justify-content: center;
+    background: #000;
+  }
+  .capture-frame {
+    width: 1080px; height: 1080px;
+    transform-origin: center center;
+  }
+</style>
+</head>
+<body>
+
+<div class="capture-stage">
+  <div class="capture-frame" id="frame"></div>
+</div>
+
+
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+
+<script>
+(() => {
+  const speedParams = new URLSearchParams(window.location.search);
+  const requestedLoopSpeed = Number(speedParams.get('speed'));
+  const requestedIntroHold = Number(speedParams.get('introhold'));
+  const loopSpeed = Number.isFinite(requestedLoopSpeed) && requestedLoopSpeed > 0
+    ? requestedLoopSpeed
+    : 1;
+  const introHoldMs = Number.isFinite(requestedIntroHold) && requestedIntroHold > 0
+    ? requestedIntroHold
+    : 0;
+
+  function formatScaledSeconds(seconds) {
+    return `${Number(seconds.toFixed(3)).toString()}s`;
+  }
+
+  function loopScaleMs(ms) {
+    return ms / loopSpeed;
+  }
+
+  function loopScaleCssTime(value) {
+    return String(value).replace(/(\d*\.?\d+)(ms|s)\b/g, (_, raw, unit) => {
+      const amountMs = unit === 's' ? Number(raw) * 1000 : Number(raw);
+      const scaledMs = loopScaleMs(amountMs);
+      if (unit === 's') return formatScaledSeconds(scaledMs / 1000);
+      return `${Math.max(1, Math.round(scaledMs))}ms`;
+    });
+  }
+
+  window.LOOP_SPEED = loopSpeed;
+  window.LOOP_INTRO_EXTRA_MS = introHoldMs;
+  window.scaleMs = loopScaleMs;
+  window.scaleCssTime = loopScaleCssTime;
+})();
+</script>
+
+<script src="events.js"></script>
+<script src="data-helpers.js"></script>
+<script type="text/babel" src="data-direction.jsx"></script>
+<script type="text/babel" src="loop-direction.jsx"></script>
+
+<script type="text/babel">
+const { useState, useEffect } = React;
+
+function LoopApp() {
+  const [tickets, setTickets] = useState(null);
+  const [currentEvent, setCurrentEvent] = useState(null);
+  useEffect(() => {
+    window.TICKET_DATA_LOADED.then(setTickets);
+    window.CURRENT_EVENT_LOADED.then(setCurrentEvent);
+  }, []);
+
+  if (!tickets) {
+    return (
+      <div style={{
+        width: 1080, height: 1080,
+        background: "#000", color: "#fff",
+        display:"flex", alignItems:"center", justifyContent:"center",
+        fontFamily:"monospace", fontSize: 14, letterSpacing: "0.2em",
+        opacity: 0.7,
+      }}>LOADING…</div>
+    );
+  }
+  return <LoopDisplay events={tickets} currentEvent={currentEvent} />;
+}
+
+ReactDOM.createRoot(document.getElementById('frame')).render(<LoopApp />);
+
+function fit() {
+  const frame = document.getElementById('frame');
+  if (!frame) return;
+  const vw = window.innerWidth;
+  const vh = window.innerHeight;
+  const scale = Math.min(vw / 1080, vh / 1080);
+  frame.style.transform = `scale(${scale})`;
+}
+window.addEventListener('resize', fit);
+fit();
+
+
+window.addEventListener('keydown', (e) => {
+  if (e.key === 'f' || e.key === 'F') {
+    if (!document.fullscreenElement) {
+      document.documentElement.requestFullscreen?.();
+    } else {
+      document.exitFullscreen?.();
+    }
+  }
+});
+</script>
+
+</body>
+</html>
