@@ -968,9 +968,9 @@ function ScreenCorners({ stage, stageElapsed, coolRgb, panelHeightRef }) {
   // Arm length and glow interpolate between screen (wide, bright) and panel (compact, steady)
   const armLen = 58 - 26 * t;
   const bw = 2.5 - 0.5 * t;
-  const glowFactor = t < 0.5 ? breathe : 1;
-  const gs1 = (10 + 10 * (1 - t)) * glowFactor;
-  const gs2 = (28 + 24 * (1 - t)) * glowFactor;
+  const glowFactor = (stage === "welcomeIn" || stage === "welcomeOut" || stage === "welcomeHold") ? breathe * 0.5 : t < 0.5 ? breathe : 1;
+  const gs1 = (stage === "welcomeIn" || stage === "welcomeOut" || stage === "welcomeHold") ? (10 + 10 * (1 - t)) * breathe * 0.5 : (10 + 10 * (1 - t)) * glowFactor;
+  const gs2 = (stage === "welcomeIn" || stage === "welcomeOut" || stage === "welcomeHold") ? (28 + 24 * (1 - t)) * breathe * 0.3 : (28 + 24 * (1 - t)) * glowFactor;
 
   return (
     <div style={{ position: "absolute", inset: 0, zIndex: 15, pointerEvents: "none", opacity }}>
