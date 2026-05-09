@@ -47,7 +47,8 @@
       "Bash(bash render-timecut.sh --viewport 480,480 --output /tmp/opencode/eb-480.mp4 --frames 60)",
       "Bash(bash render-timecut.sh --viewport 480,480 --output eb-loop-480.mp4)",
       "Bash(xdg-open *)",
-      "Bash(python3 *)"
+      "Bash(python3 *)",
+      "Bash(grep -E '\\\\.\\(html|css|js|tsx|ts|jsx\\)$')"
     ]
   }
 }

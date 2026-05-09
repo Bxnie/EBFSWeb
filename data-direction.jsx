@@ -416,10 +416,11 @@ const BackgroundSlideshow = React.memo(function BackgroundSlideshow({ interval =
   const bgTint = React.useMemo(() => {
     // Use the actual dark ambient color from the image if available, else fall back to coolRgb darkened
     const src = darkRgb || coolRgb;
-    if (!src) return 'rgba(0,0,0,0.6)';
+    console.log(src);
+    if (!src) return 'rgba(0,0,0,0.1)';
     const { h, s } = rgb2hsl(src.r, src.g, src.b);
-    const { r, g, b } = hsl2rgb(h, Math.min(s * 0.9, 0.7), 0.06);
-    return `rgba(${r},${g},${b},0.72)`;
+    const { r, g, b } = hsl2rgb(h, Math.min(s * 0.2, 0.3), 0.1);
+    return `rgba(${r},${g},${b},0.06)`;
   }, [
     darkRgb ? `${darkRgb.r},${darkRgb.g},${darkRgb.b}` : coolRgb ? `${coolRgb.r},${coolRgb.g},${coolRgb.b}` : null,
   ]);
@@ -773,7 +774,7 @@ function DataMosaic({ events }) {
       width:W, height:H, background:"#000", color:"#fff",
       fontFamily:"'Space Grotesk',sans-serif", position:"relative", overflow:"hidden",
     }}>
-      <BackgroundSlideshow />
+      <BackgroundSlideshow color=""/>
       {/* Atmospheric overlays — same shape as Direction 2 */}
       <div style={{ position:"absolute", inset:0,
         background:"radial-gradient(circle at 50% 60%, rgba(0,0,0,0) 0%, rgba(0,0,0,0.55) 60%, rgba(0,0,0,0.85) 100%)" }} />
