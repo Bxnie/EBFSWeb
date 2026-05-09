@@ -907,6 +907,8 @@ function UpcomingChrome({ events, active, tick, warmRgb, coolRgb, panelHeightRef
 // upcomingOut: travel back to screen corners, fading as they arrive.
 function ScreenCorners({ stage, stageElapsed, coolRgb, panelHeightRef }) {
   const accentColor = rgbCss(coolRgb);
+  const accentGlowStrong = rgbCss(coolRgb, 0.5); // Reduced opacity for dimming
+  const accentGlowSoft = rgbCss(coolRgb, 0.2);   // Further reduced opacity
 
   // Panel bounds — ListingsPanel writes these every render so we track live height changes
   const pb = panelHeightRef ? panelHeightRef.current : null;
@@ -993,7 +995,7 @@ function ScreenCorners({ stage, stageElapsed, coolRgb, panelHeightRef }) {
               borderBottom: !isTop   ? `${bw}px solid ${accentColor}` : "none",
               borderLeft:   isLeft   ? `${bw}px solid ${accentColor}` : "none",
               borderRight:  !isLeft  ? `${bw}px solid ${accentColor}` : "none",
-              filter: `drop-shadow(0 0 ${gs1}px ${rgbCss(coolRgb, 0.92)}) drop-shadow(0 0 ${gs2}px ${rgbCss(coolRgb, 0.44)})`,
+              filter: `drop-shadow(0 0 ${gs1}px ${accentGlowStrong}) drop-shadow(0 0 ${gs2}px ${accentGlowSoft})`,
             }}
           />
         );
