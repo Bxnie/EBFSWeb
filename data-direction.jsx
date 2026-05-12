@@ -201,19 +201,23 @@ function renderEventRow(e, soldTheme, lowTheme, accentCss) {
   );
 }
 
-function renderMonthHeader(monthName, accentCss) {
+function renderMonthHeader(monthName, accentCss, monthRgb) {
+  const monthCss = monthRgb ? `rgb(${monthRgb.r},${monthRgb.g},${monthRgb.b})` : null;
+  const monthGlow = monthRgb ? `rgba(${monthRgb.r},${monthRgb.g},${monthRgb.b},0.55)` : null;
   return (
     <div style={{
-      fontFamily:"'Anton',sans-serif", fontSize:MONTH_SIZE, color: MONTH_LABEL,
+      fontFamily:"'Anton',sans-serif", fontSize:MONTH_SIZE, color: monthCss || MONTH_LABEL,
       letterSpacing:"0.06em", lineHeight:1, marginBottom:10,
-      textShadow:`0 0 12px rgba(255,255,255,0.08), 4px 4px 0 rgba(0,0,0,0.82)`,
+      textShadow: monthCss
+        ? `0 0 6px ${monthGlow}, 0 0 18px ${monthGlow}, 4px 4px 0 rgba(0,0,0,0.82)`
+        : `0 0 12px rgba(255,255,255,0.08), 4px 4px 0 rgba(0,0,0,0.82)`,
     }}>
       {monthName}
     </div>
   );
 }
 
-const ListingsPage = React.forwardRef(function ListingsPage({ groups, absolute = false, soldTheme, lowTheme, accentCss }, ref) {
+const ListingsPage = React.forwardRef(function ListingsPage({ groups, absolute = false, soldTheme, lowTheme, accentCss, monthRgb }, ref) {
   const wrapStyle = {
     position: absolute ? "absolute" : "relative",
     inset: absolute ? 0 : undefined,
@@ -233,12 +237,12 @@ const ListingsPage = React.forwardRef(function ListingsPage({ groups, absolute =
       <div ref={ref} style={wrapStyle}>
         <div style={{ flex:1, overflow:"hidden", display:"flex", gap:28 }}>
           <div style={{ flex:1, minWidth:0 }}>
-            {renderMonthHeader(g.monthName, accentCss)}
+            {renderMonthHeader(g.monthName, accentCss, monthRgb)}
             {g.events.slice(0, half).map(e => renderEventRow(e, soldTheme, lowTheme, accentCss))}
           </div>
           {g.events.length > half && (
             <div style={{ flex:1, minWidth:0 }}>
-              {renderMonthHeader(g.monthName, accentCss)}
+              {renderMonthHeader(g.monthName, accentCss, monthRgb)}
               {g.events.slice(half).map(e => renderEventRow(e, soldTheme, lowTheme, accentCss))}
             </div>
           )}
@@ -268,7 +272,7 @@ const ListingsPage = React.forwardRef(function ListingsPage({ groups, absolute =
           <div key={ci} style={{ flex:1, minWidth:0 }}>
             {colGroups.map(g => (
               <div key={g.key} style={{ marginBottom:14 }}>
-                {renderMonthHeader(g.monthName, accentCss)}
+                {renderMonthHeader(g.monthName, accentCss, monthRgb)}
                 {g.events.map(e => renderEventRow(e, soldTheme, lowTheme, accentCss))}
               </div>
             ))}
@@ -412,7 +416,7 @@ function shuffle(arr) {
   return a;
 }
 
-const BackgroundSlideshow = React.memo(function BackgroundSlideshow({ interval = 6500, coolRgb = null, darkRgb = null }) {
+const BackgroundSlideshow = React.memo(function BackgroundSlideshow({ interval = 6500, coolRgb = null, darkRgb = null, warmRgb = null }) {
   const bgTint = React.useMemo(() => {
     // Use the actual dark ambient color from the image if available, else fall back to coolRgb darkened
     const src = darkRgb || coolRgb;
@@ -514,6 +518,10 @@ const BackgroundSlideshow = React.memo(function BackgroundSlideshow({ interval =
       })}
       {/* Dark tinted colour wash derived from the artist image */}
       <div style={{ position:"absolute", inset:0, background: bgTint, pointerEvents:"none" }} />
+      {/* Warm accent tint (secondary/sold-out colour) — color blend keeps darks dark */}
+      {warmRgb && (
+        <div style={{ position:"absolute", inset:0, background:`rgb(${warmRgb.r},${warmRgb.g},${warmRgb.b})`, opacity:0.55, mixBlendMode:"color", pointerEvents:"none" }} />
+      )}
     </div>
   );
 });
@@ -529,6 +537,7 @@ function ListingsPanel({
   accentShadow = "rgba(255,45,63,0.18)",
   soldTheme = null,
   lowTheme = null,
+  monthRgb = null,
   panelHeightRef = null,
 }) {
   const sTheme = soldTheme || SOLD_FALLBACK;
@@ -681,7 +690,7 @@ function ListingsPanel({
           }}>
           {pages.map((pg, i) => (
             <div key={i} className="eb-page" style={{ display: i === pageIdx ? 'block' : 'none' }}>
-              <ListingsPage groups={pg} absolute={true} soldTheme={sTheme} lowTheme={lTheme} accentCss={accentCss} />
+              <ListingsPage groups={pg} absolute={true} soldTheme={sTheme} lowTheme={lTheme} accentCss={accentCss} monthRgb={monthRgb} />
             </div>
           ))}
         </div>

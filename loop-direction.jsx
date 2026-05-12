@@ -305,9 +305,9 @@ function useEventAccents(imageUrl) {
 
 // ---------- WELCOME PANEL ----------
 function WelcomePanel({ opacity, warmRgb, coolRgb }) {
-  const accentColor = rgbCss(coolRgb, 0.9);
-  const accentGlowStrong = rgbCss(coolRgb, 0.78);
-  const accentGlowSoft = rgbCss(coolRgb, 0.34);
+  const accentColor = rgbCss(warmRgb, 0.9);
+  const accentGlowStrong = rgbCss(warmRgb, 0.78);
+  const accentGlowSoft = rgbCss(warmRgb, 0.34);
 
   return (
     <div
@@ -340,7 +340,7 @@ function WelcomePanel({ opacity, warmRgb, coolRgb }) {
               justifyContent: "center",
             }}
           >
-            <Logo width={460} accentColor={rgbCss(coolRgb)} />
+            <Logo width={460} accentColor={rgbCss(warmRgb)} />
           </div>
         </div>
       </div>
@@ -686,7 +686,7 @@ function LoopDisplay({ events, currentEvent }) {
           opacity: 1,
         }}
       >
-        <BackgroundSlideshow coolRgb={coolRgb} darkRgb={darkRgb} />
+        <BackgroundSlideshow coolRgb={coolRgb} darkRgb={darkRgb} warmRgb={warmRgb} />
         {/* Same atmospheric overlays as DataMosaic */}
         <div
           style={{
@@ -826,6 +826,9 @@ function UpcomingChrome({ events, active, tick, warmRgb, coolRgb, panelHeightRef
   const accentColor = rgbCss(coolRgb);
   const accentGlowStrong = rgbCss(coolRgb, 0.84);
   const accentGlowSoft = rgbCss(coolRgb, 0.22);
+  const warmColor = rgbCss(warmRgb);
+  const warmGlowStrong = rgbCss(warmRgb, 0.84);
+  const warmGlowSoft = rgbCss(warmRgb, 0.22);
   const soldTheme = { css: rgbCss(warmRgb), glow1: rgbCss(warmRgb, 0.9), glow2: rgbCss(warmRgb, 0.52) };
   const lowTheme  = { css: rgbCss(coolRgb), glow1: rgbCss(coolRgb, 0.9), glow2: rgbCss(coolRgb, 0.52) };
 
@@ -848,10 +851,10 @@ function UpcomingChrome({ events, active, tick, warmRgb, coolRgb, panelHeightRef
             fontSize: 38,
             fontWeight: 400,
             fontStyle: "italic",
-            color: accentColor,
+            color: warmColor,
             marginBottom: 8,
             display: "inline-block",
-            textShadow: `0 0 6px ${accentGlowStrong}, 0 0 14px ${accentGlowSoft}, 0 2px 8px rgba(0,0,0,0.9)`,
+            textShadow: `0 0 6px ${warmGlowStrong}, 0 0 14px ${warmGlowSoft}, 0 2px 8px rgba(0,0,0,0.9)`,
           }}
         >
           UPCOMING
@@ -878,6 +881,7 @@ function UpcomingChrome({ events, active, tick, warmRgb, coolRgb, panelHeightRef
         accentShadow={accentGlowSoft}
         soldTheme={soldTheme}
         lowTheme={lowTheme}
+        monthRgb={warmRgb}
         panelHeightRef={panelHeightRef}
       />
 
@@ -893,7 +897,7 @@ function UpcomingChrome({ events, active, tick, warmRgb, coolRgb, panelHeightRef
           justifyContent: "center",
         }}
       >
-        <Logo width={360} accentColor={rgbCss(coolRgb)} />
+        <Logo width={360} accentColor={warmColor} />
       </div>
     </div>
   );
@@ -936,24 +940,9 @@ function ScreenCorners({ stage, stageElapsed, coolRgb, panelHeightRef }) {
   // Slow breathing sine for glow while corners hold at screen position
   const breathe = 0.72 + 0.28 * Math.sin(stageElapsed * 0.0016);
 
-  if (stage === "welcomeIn") {
-    opacity = easeInOut(Math.min(1, stageElapsed / 1100));
-    t = 0;
-  } else if (stage === "welcomeHold") {
-    opacity = 1;
-    t = 0;
-  } else if (stage === "welcomeOut") {
-    opacity = 1;
-    t = easeInOut(Math.min(1, stageElapsed / 1000));
-  } else if (stage === "upcomingIn") {
-    opacity = 1;
-    t = 1;
-  } else if (stage === "upcomingHold") {
-    opacity = 1;
-    t = 1;
-  } else if (stage === "upcomingOut") {
-    t = 1 - easeInOut(Math.min(1, stageElapsed / 1000));
-    opacity = stageElapsed < 650 ? 1 : 1 - easeInOut(Math.min(1, (stageElapsed - 650) / 350));
+  if (stage === "welcomeIn" || stage === "welcomeHold" || stage === "welcomeOut"
+      || stage === "upcomingIn" || stage === "upcomingHold" || stage === "upcomingOut") {
+    return null;
   } else if (stage === "tonightIn") {
     opacity = 1 - easeInOut(Math.min(1, stageElapsed / 1200)) * 0.72;
     t = 0;
