@@ -48,7 +48,17 @@
       "Bash(bash render-timecut.sh --viewport 480,480 --output eb-loop-480.mp4)",
       "Bash(xdg-open *)",
       "Bash(python3 *)",
-      "Bash(grep -E '\\\\.\\(html|css|js|tsx|ts|jsx\\)$')"
+      "Bash(grep -E '\\\\.\\(html|css|js|tsx|ts|jsx\\)$')",
+      "Bash(libreoffice *)",
+      "Bash(cp \"/home/ben/EBFSWeb/08.05.26 Bristol Ticket Counts.xlsx\" bristol_tickets.xlsx)",
+      "Bash(mkdir -p xlsx_extract)",
+      "Bash(unzip -o bristol_tickets.xlsx -d xlsx_extract/)",
+      "Bash(git add *)",
+      "Bash(git commit -m ' *)",
+      "Bash(git -C /home/ben/EBFSWeb remote -v)",
+      "Bash(git -C /home/ben/EBFSWeb branch)",
+      "Bash(gh repo *)",
+      "Bash(git rm *)"
     ]
   }
 }

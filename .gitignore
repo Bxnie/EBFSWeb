@@ -1,1 +1,6 @@
 .aider*
+node_modules/
+__pycache__/
+*.xlsx
+*.mov
+eb-loop.mp4

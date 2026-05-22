@@ -145,6 +145,7 @@ const MONTH_SIZE = 42;
 const EVENT_SIZE = 28;
 const BOLT_SIZE = 28;
 
+
 function renderEventRow(e, soldTheme, lowTheme, accentCss) {
   const status = statusForCount(e.sold, e.capacity);
   const isLow = status === 'low';
@@ -164,7 +165,13 @@ function renderEventRow(e, soldTheme, lowTheme, accentCss) {
       ? `0 0 12px ${sT.glow1}, 0 0 28px ${sT.glow2}, 0 1px 4px rgba(0,0,0,0.62)`
       : 'none';
   return (
-    <div key={e.date} style={{ display:"flex", gap:10, alignItems:"center", overflow:"hidden", marginBottom:2 }}>
+    <div key={e.date} style={{ position:"relative", display:"flex", gap:10, alignItems:"center", overflow:"hidden", marginBottom:2 }}>
+      {isSold && <div style={{
+        position:"absolute", inset:0, pointerEvents:"none", borderRadius:2,
+        background:`radial-gradient(ellipse 80% 100% at 50% 50%, ${sT.glow2} 0%, transparent 70%)`,
+        animation:`sold-haze ${dataScaleCssTime('3s')} linear infinite`,
+        opacity: 0,
+      }} />}
       <span style={{
         opacity: isLow || isSold ? 0.95 : 0.5,
         color: dateColor,
@@ -180,7 +187,9 @@ function renderEventRow(e, soldTheme, lowTheme, accentCss) {
       </span>
       <span style={{ width: BOLT_SIZE * 0.85, display:"inline-flex", alignItems:"center", justifyContent:"center", flexShrink:0 }}>
         {status ? (
-          <StatusMark kind={status} size={BOLT_SIZE} color={isLow ? lT.css : sT.css} />
+          <span style={isSold ? { animation:`sold-bolt-flicker ${dataScaleCssTime('3s')} linear infinite`, display:"inline-flex" } : undefined}>
+            <StatusMark kind={status} size={BOLT_SIZE} color={isLow ? lT.css : sT.css} />
+          </span>
         ) : (
           <span style={{ color: WHITE, fontWeight:700, lineHeight:1, opacity:0.45 }}>-</span>
         )}
@@ -217,6 +226,39 @@ function renderMonthHeader(monthName, accentCss, monthRgb) {
   );
 }
 
+const SOLD_EFFECT_STYLES = `
+  @keyframes sold-haze {
+    0%, 100% { opacity: 0; }
+    12% { opacity: 0.22; }
+    13% { opacity: 0.1; }
+    14% { opacity: 0.18; }
+    22% { opacity: 0; }
+    40% { opacity: 0; }
+    41% { opacity: 0.14; }
+    50% { opacity: 0; }
+    65% { opacity: 0; }
+    66% { opacity: 0.26; }
+    67% { opacity: 0.12; }
+    68% { opacity: 0.2; }
+    78% { opacity: 0; }
+  }
+  @keyframes sold-bolt-flicker {
+    0%, 100% { filter: brightness(1); }
+    12% { filter: brightness(2.8); }
+    13% { filter: brightness(1.2); }
+    14% { filter: brightness(2.4); }
+    15% { filter: brightness(1); }
+    40% { filter: brightness(1); }
+    41% { filter: brightness(2.2); }
+    42% { filter: brightness(1); }
+    65% { filter: brightness(1); }
+    66% { filter: brightness(3.0); }
+    67% { filter: brightness(1.3); }
+    68% { filter: brightness(2.6); }
+    69% { filter: brightness(1); }
+  }
+`;
+
 const ListingsPage = React.forwardRef(function ListingsPage({ groups, absolute = false, soldTheme, lowTheme, accentCss, monthRgb }, ref) {
   const wrapStyle = {
     position: absolute ? "absolute" : "relative",
@@ -235,6 +277,7 @@ const ListingsPage = React.forwardRef(function ListingsPage({ groups, absolute =
     const half = Math.ceil(g.events.length / 2);
     return (
       <div ref={ref} style={wrapStyle}>
+        <style>{SOLD_EFFECT_STYLES}</style>
         <div style={{ flex:1, overflow:"hidden", display:"flex", gap:28 }}>
           <div style={{ flex:1, minWidth:0 }}>
             {renderMonthHeader(g.monthName, accentCss, monthRgb)}
@@ -258,15 +301,21 @@ const ListingsPage = React.forwardRef(function ListingsPage({ groups, absolute =
   const cols = [];
   let cur = [], count = 0;
   for (const g of groups) {
-    if (cols.length < numCols - 1 && count >= target) {
-      cols.push(cur); cur = []; count = 0;
+    const n = g.events.length;
+    if (cols.length < numCols - 1 && count > 0) {
+      const wouldBe = count + n;
+      // Split now if we've hit the target, or if adding this group overshoots it
+      // by more than staying put would (pick the closer side of target).
+      const splitNow = count >= target || (wouldBe > target && Math.abs(count - target) <= Math.abs(wouldBe - target));
+      if (splitNow) { cols.push(cur); cur = []; count = 0; }
     }
-    cur.push(g); count += g.events.length;
+    cur.push(g); count += n;
   }
   cols.push(cur);
 
   return (
     <div ref={ref} style={wrapStyle}>
+      <style>{SOLD_EFFECT_STYLES}</style>
       <div style={{ flex:1, overflow:"hidden", display:"flex", gap:28 }}>
         {cols.map((colGroups, ci) => (
           <div key={ci} style={{ flex:1, minWidth:0 }}>
@@ -539,6 +588,7 @@ function ListingsPanel({
   lowTheme = null,
   monthRgb = null,
   panelHeightRef = null,
+  borderProgress = 1,
 }) {
   const sTheme = soldTheme || SOLD_FALLBACK;
   const lTheme = lowTheme  || LOW_FALLBACK;
@@ -642,6 +692,33 @@ function ListingsPanel({
         position:"relative",
         pointerEvents:"auto",
       }}>
+        {/* Animated corner brackets — arms grow from 0 to 50% of each dimension */}
+        {["tl", "tr", "bl", "br"].map((key) => {
+          const isTop  = key[0] === "t";
+          const isLeft = key[1] === "l";
+          const bp = Math.max(0, Math.min(1, borderProgress));
+          return (
+            <div
+              key={key}
+              style={{
+                position: "absolute",
+                top:    isTop  ? 0 : undefined,
+                bottom: !isTop  ? 0 : undefined,
+                left:   isLeft ? 0 : undefined,
+                right:  !isLeft ? 0 : undefined,
+                width:  `${bp * 50}%`,
+                height: `${bp * 50}%`,
+                borderTop:    isTop  ? `1.5px solid ${accentColor}` : "none",
+                borderBottom: !isTop  ? `1.5px solid ${accentColor}` : "none",
+                borderLeft:   isLeft ? `1.5px solid ${accentColor}` : "none",
+                borderRight:  !isLeft ? `1.5px solid ${accentColor}` : "none",
+                filter: `drop-shadow(0 0 5px ${accentGlow}) drop-shadow(0 0 14px ${accentShadow})`,
+                pointerEvents: "none",
+                zIndex: 10,
+              }}
+            />
+          );
+        })}
         <div style={{
           position:"absolute",
           left:0,
@@ -673,8 +750,7 @@ function ListingsPanel({
           overflow:"hidden",
           background:PANEL_BG,
           backdropFilter:"blur(2px)",
-          border:`1px solid ${accentColor}`,
-          boxShadow:`0 0 24px ${accentShadow}, 0 18px 54px rgba(0,0,0,0.34)`,
+          boxShadow:`0 18px 54px rgba(0,0,0,0.34)`,
           display:"flex", flexDirection:"column",
         }}>
           <style>{`

@@ -216,12 +216,12 @@ function extractAccentsFromImage(img) {
     const max = Math.max(r, g, b), min = Math.min(r, g, b);
     const sat = max === 0 ? 0 : (max - min) / max;
     const lit = (max + min) / 2 / 255;
-    if (sat < 0.06) continue; // ignore greys
+    if (sat < 0.18) continue; // ignore greys and near-neutral colours
 
-    const key = `${Math.round(r / 20)},${Math.round(g / 20)},${Math.round(b / 20)}`;
+    const key = `${Math.round(r / 16)},${Math.round(g / 16)},${Math.round(b / 16)}`;
 
     if (lit >= 0.12 && lit <= 0.94) {
-      const w = (0.2 + sat * 1.5) * (0.3 + lit);
+      const w = sat * sat * (0.3 + lit); // square sat so low-sat colours don't accumulate
       const bk = accentBuckets.get(key) || { score: 0, r: 0, g: 0, b: 0 };
       bk.score += w; bk.r += r * w; bk.g += g * w; bk.b += b * w;
       accentBuckets.set(key, bk);
@@ -243,18 +243,21 @@ function extractAccentsFromImage(img) {
   const darkCandidates   = toCandidates(darkBuckets);
 
   // Pick two most dominant accent colors with hue separation >= 40°
+  // Require meaningful saturation so washed-out colours don't become accents
+  const viableAccents = accentCandidates.filter(c => c.s >= 0.30);
   let primary = null, secondary = null;
-  for (const c of accentCandidates) {
+  for (const c of viableAccents) {
     if (!primary) { primary = c; continue; }
     const hueDiff = Math.abs(c.h - primary.h);
     const sep = Math.min(hueDiff, 360 - hueDiff);
     if (sep >= 40) { secondary = c; break; }
   }
+  if (!primary && accentCandidates.length) primary = accentCandidates[0]; // fallback if nothing passes sat gate
   if (!primary) return { warm: null, cool: null, dark: null };
   if (!secondary) secondary = primary; // single dominant hue
 
-  // Assign warm/cool by hue: warm = more yellow/orange, cool = more blue/cyan
-  const isWarm = (h) => (h <= 100 || h >= 310);
+  // Assign warm/cool by hue: warm = red/orange/yellow (avoid green), cool = blue/cyan/purple
+  const isWarm = (h) => (h <= 75 || h >= 310);
   const pWarm = isWarm(primary.h);
   const warmSrc = pWarm ? primary.avg : secondary.avg;
   const coolSrc = pWarm ? secondary.avg : primary.avg;
@@ -393,9 +396,9 @@ function TonightPanel({ event, visuals, warmRgb, coolRgb }) {
   const doorTime = event.door_time || event.doorTime || "DOORS · 7PM";
   const PANEL_SIZE = 972; // 90% of 1080
 
-  const accentColor = rgbCss(coolRgb);
-  const accentGlowStrong = rgbCss(coolRgb, 0.9);
-  const accentGlowSoft = rgbCss(coolRgb, 0.5);
+  const accentColor = rgbCss(warmRgb);
+  const accentGlowStrong = rgbCss(warmRgb, 0.9);
+  const accentGlowSoft = rgbCss(warmRgb, 0.5);
 
   return (
     <div
@@ -509,7 +512,7 @@ function TonightPanel({ event, visuals, warmRgb, coolRgb }) {
                   fontSize: 26,
                   letterSpacing: "0.25em",
                   color: accentColor,
-                  textShadow: `0 0 28px ${rgbCss(coolRgb, 0.86)}, 0 0 52px ${rgbCss(coolRgb, 0.46)}, 4px 4px 0 rgba(0,0,0,0.85)`,
+                  textShadow: `0 0 28px ${rgbCss(warmRgb, 0.86)}, 0 0 52px ${rgbCss(warmRgb, 0.46)}, 4px 4px 0 rgba(0,0,0,0.85)`,
                   fontWeight: 700,
                 }}
               >
@@ -616,6 +619,15 @@ function LoopDisplay({ events, currentEvent }) {
         : stage === "upcomingOut"
           ? 1 - tween(stageElapsed, 0, 1000)
           : 0;
+
+  const upcomingBorderProgress = (() => {
+    if (stage === "upcomingIn")
+      return easeOutCubic(Math.min(1, stageElapsed / 900));
+    if (stage === "upcomingHold") return 1;
+    if (stage === "upcomingOut")
+      return 1 - easeOutCubic(Math.min(1, stageElapsed / 900));
+    return 0;
+  })();
 
   const tonightOpacity =
     stage === "tonightIn"
@@ -730,6 +742,7 @@ function LoopDisplay({ events, currentEvent }) {
           warmRgb={warmRgb}
           coolRgb={coolRgb}
           panelHeightRef={panelHeightRef}
+          borderProgress={upcomingBorderProgress}
         />
       </div>
 
@@ -746,7 +759,7 @@ function LoopDisplay({ events, currentEvent }) {
       </div>
 
       {/* Animated screen-to-panel corner brackets */}
-      <ScreenCorners stage={stage} stageElapsed={stageElapsed} coolRgb={coolRgb} panelHeightRef={panelHeightRef} />
+      <ScreenCorners stage={stage} stageElapsed={stageElapsed} warmRgb={warmRgb} panelHeightRef={panelHeightRef} />
     </div>
   );
 }
@@ -770,7 +783,7 @@ function usePulse(periodMs) {
   return 0.7 + 0.3 * Math.cos(t * 2 * Math.PI);
 }
 
-function UpcomingChrome({ events, active, tick, warmRgb, coolRgb, panelHeightRef }) {
+function UpcomingChrome({ events, active, tick, warmRgb, coolRgb, panelHeightRef, borderProgress = 1 }) {
   const pulseOpacity = usePulse(loopScaleMs(1600));
   const display = window.getDisplayEvents
     ? window.getDisplayEvents(events)
@@ -823,12 +836,12 @@ function UpcomingChrome({ events, active, tick, warmRgb, coolRgb, panelHeightRef
       ? currentPage[0].monthName
       : `${currentPage[0].monthName} \u2014 ${currentPage[currentPage.length - 1].monthName}`
     : monthNames;
-  const accentColor = rgbCss(coolRgb);
-  const accentGlowStrong = rgbCss(coolRgb, 0.84);
-  const accentGlowSoft = rgbCss(coolRgb, 0.22);
   const warmColor = rgbCss(warmRgb);
   const warmGlowStrong = rgbCss(warmRgb, 0.84);
   const warmGlowSoft = rgbCss(warmRgb, 0.22);
+  const accentColor = warmColor;
+  const accentGlowStrong = warmGlowStrong;
+  const accentGlowSoft = warmGlowSoft;
   const soldTheme = { css: rgbCss(warmRgb), glow1: rgbCss(warmRgb, 0.9), glow2: rgbCss(warmRgb, 0.52) };
   const lowTheme  = { css: rgbCss(coolRgb), glow1: rgbCss(coolRgb, 0.9), glow2: rgbCss(coolRgb, 0.52) };
 
@@ -883,6 +896,7 @@ function UpcomingChrome({ events, active, tick, warmRgb, coolRgb, panelHeightRef
         lowTheme={lowTheme}
         monthRgb={warmRgb}
         panelHeightRef={panelHeightRef}
+        borderProgress={borderProgress}
       />
 
       {/* Logo footer */}
@@ -909,10 +923,10 @@ function UpcomingChrome({ events, active, tick, warmRgb, coolRgb, panelHeightRef
 // welcomeOut: travel inward to dock on the events listing panel.
 // Events: locked to live panel height, tracking page-resize transitions.
 // upcomingOut: travel back to screen corners, fading as they arrive.
-function ScreenCorners({ stage, stageElapsed, coolRgb, panelHeightRef }) {
-  const accentColor = rgbCss(coolRgb);
-  const accentGlowStrong = rgbCss(coolRgb, 0.5); // Reduced opacity for dimming
-  const accentGlowSoft = rgbCss(coolRgb, 0.2);   // Further reduced opacity
+function ScreenCorners({ stage, stageElapsed, warmRgb, panelHeightRef }) {
+  const accentColor = rgbCss(warmRgb);
+  const accentGlowStrong = rgbCss(warmRgb, 0.5);
+  const accentGlowSoft = rgbCss(warmRgb, 0.2);
 
   // Panel bounds — ListingsPanel writes these every render so we track live height changes
   const pb = panelHeightRef ? panelHeightRef.current : null;
