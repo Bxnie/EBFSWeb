@@ -58,7 +58,9 @@
       "Bash(git -C /home/ben/EBFSWeb remote -v)",
       "Bash(git -C /home/ben/EBFSWeb branch)",
       "Bash(gh repo *)",
-      "Bash(git rm *)"
+      "Bash(git rm *)",
+      "Bash(git commit *)",
+      "Bash(git push *)"
     ]
   }
 }

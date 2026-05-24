@@ -1,41 +1,5 @@
 [
   {
-    "date": "2026-05-16",
-    "day": 16,
-    "month": 5,
-    "monthName": "MAY",
-    "year": 2026,
-    "name": "Erin Lecount",
-    "promoter": "AEG",
-    "capacity": 1300,
-    "sold": 1163,
-    "pct": 0.8946153846
-  },
-  {
-    "date": "2026-05-17",
-    "day": 17,
-    "month": 5,
-    "monthName": "MAY",
-    "year": 2026,
-    "name": "Mitski",
-    "promoter": "Rough Trade",
-    "capacity": 1200,
-    "sold": 1200,
-    "pct": 1.0
-  },
-  {
-    "date": "2026-05-21",
-    "day": 21,
-    "month": 5,
-    "monthName": "MAY",
-    "year": 2026,
-    "name": "PLINI",
-    "promoter": "Effigy",
-    "capacity": 1300,
-    "sold": 396,
-    "pct": 0.3046153846
-  },
-  {
     "date": "2026-05-23",
     "day": 23,
     "month": 5,
@@ -44,8 +8,9 @@
     "name": "Dot To Dot 2026",
     "promoter": "DHP",
     "capacity": 3000,
-    "sold": 3570,
-    "pct": 1.19
+    "sold": 4500,
+    "pct": 1.5,
+    "type": "live"
   },
   {
     "date": "2026-05-24",
@@ -56,8 +21,9 @@
     "name": "Tinariwen",
     "promoter": "Bristol Beacon",
     "capacity": 1300,
-    "sold": 812,
-    "pct": 0.6246153846
+    "sold": 913,
+    "pct": 0.7023076923,
+    "type": "live"
   },
   {
     "date": "2026-05-25",
@@ -68,8 +34,9 @@
     "name": "fakemink: a Terrible Beauty . - The Tour",
     "promoter": "AEG",
     "capacity": 1300,
-    "sold": 1155,
-    "pct": 0.8884615385
+    "sold": 1190,
+    "pct": 0.9153846154,
+    "type": "live"
   },
   {
     "date": "2026-05-30",
@@ -78,10 +45,11 @@
     "monthName": "MAY",
     "year": 2026,
     "name": "Sugar",
-    "promoter": "dhp",
+    "promoter": "DHP",
     "capacity": 1300,
-    "sold": 799,
-    "pct": 0.6146153846
+    "sold": 805,
+    "pct": 0.6192307692,
+    "type": "live"
   },
   {
     "date": "2026-06-14",
@@ -92,8 +60,9 @@
     "name": "Die Spitz",
     "promoter": "Effigy",
     "capacity": 1300,
-    "sold": 896,
-    "pct": 0.6892307692
+    "sold": 913,
+    "pct": 0.7023076923,
+    "type": "live"
   },
   {
     "date": "2026-07-18",
@@ -104,8 +73,9 @@
     "name": "BAT SABBATH",
     "promoter": "Effigy",
     "capacity": 1300,
-    "sold": 223,
-    "pct": 0.1715384615
+    "sold": 227,
+    "pct": 0.1746153846,
+    "type": "live"
   },
   {
     "date": "2026-08-01",
@@ -116,8 +86,9 @@
     "name": "Martin Kemp",
     "promoter": "wearelive",
     "capacity": 1300,
-    "sold": 220,
-    "pct": 0.1692307692
+    "sold": 224,
+    "pct": 0.1723076923,
+    "type": "live"
   },
   {
     "date": "2026-08-08",
@@ -125,11 +96,12 @@
     "month": 8,
     "monthName": "AUGUST",
     "year": 2026,
-    "name": "RNB Mania",
+    "name": "RNB MANIA | Bristol's R&B Festival",
     "promoter": "RNB Mania",
     "capacity": 1300,
-    "sold": 2,
-    "pct": 0.001538461538
+    "sold": 111,
+    "pct": 0.0853846154,
+    "type": "club"
   },
   {
     "date": "2026-08-23",
@@ -140,8 +112,9 @@
     "name": "Current Joys",
     "promoter": "Crosstown Concerts",
     "capacity": 1300,
-    "sold": 414,
-    "pct": 0.3184615385
+    "sold": 418,
+    "pct": 0.3215384615,
+    "type": "live"
   },
   {
     "date": "2026-08-26",
@@ -153,7 +126,8 @@
     "promoter": "FORM",
     "capacity": 1300,
     "sold": 308,
-    "pct": 0.2369230769
+    "pct": 0.2369230769,
+    "type": "live"
   },
   {
     "date": "2026-09-03",
@@ -164,8 +138,9 @@
     "name": "Tyler Ballgame",
     "promoter": "Metropolis / Communion ONE",
     "capacity": 1300,
-    "sold": 124,
-    "pct": 0.09538461538
+    "sold": 128,
+    "pct": 0.0984615385,
+    "type": "live"
   },
   {
     "date": "2026-09-13",
@@ -176,8 +151,9 @@
     "name": "PRIMAL SCREAM - XTRMNTR",
     "promoter": "SJM Concerts",
     "capacity": 1300,
-    "sold": 556,
-    "pct": 0.4276923077
+    "sold": 566,
+    "pct": 0.4353846154,
+    "type": "live"
   },
   {
     "date": "2026-09-18",
@@ -188,8 +164,9 @@
     "name": "Feng",
     "promoter": "Live Nation",
     "capacity": 1300,
-    "sold": 363,
-    "pct": 0.2792307692
+    "sold": 366,
+    "pct": 0.2815384615,
+    "type": "live"
   },
   {
     "date": "2026-09-25",
@@ -200,8 +177,9 @@
     "name": "Devlin",
     "promoter": "Freefromsleep",
     "capacity": 1300,
-    "sold": 217,
-    "pct": 0.1669230769
+    "sold": 223,
+    "pct": 0.1715384615,
+    "type": "live"
   },
   {
     "date": "2026-09-26",
@@ -213,7 +191,8 @@
     "promoter": "Crosstown Concerts",
     "capacity": 1300,
     "sold": 285,
-    "pct": 0.2192307692
+    "pct": 0.2192307692,
+    "type": "live"
   },
   {
     "date": "2026-10-02",
@@ -225,7 +204,21 @@
     "promoter": "Crosstown Concerts",
     "capacity": 1300,
     "sold": 534,
-    "pct": 0.4107692308
+    "pct": 0.4107692308,
+    "type": "live"
+  },
+  {
+    "date": "2026-10-03",
+    "day": 3,
+    "month": 10,
+    "monthName": "OCTOBER",
+    "year": 2026,
+    "name": "the olllam",
+    "promoter": "Band on the wall",
+    "capacity": 1300,
+    "sold": 46,
+    "pct": 0.0353846154,
+    "type": "live"
   },
   {
     "date": "2026-10-06",
@@ -236,8 +229,9 @@
     "name": "Joyce Manor",
     "promoter": "Live Nation",
     "capacity": 1300,
-    "sold": 299,
-    "pct": 0.23
+    "sold": 301,
+    "pct": 0.2315384615,
+    "type": "live"
   },
   {
     "date": "2026-10-09",
@@ -249,7 +243,21 @@
     "promoter": "DHP",
     "capacity": 1300,
     "sold": 601,
-    "pct": 0.4623076923
+    "pct": 0.4623076923,
+    "type": "live"
+  },
+  {
+    "date": "2026-10-11",
+    "day": 11,
+    "month": 10,
+    "monthName": "OCTOBER",
+    "year": 2026,
+    "name": "SIX60",
+    "promoter": "Communion One",
+    "capacity": 1300,
+    "sold": 504,
+    "pct": 0.3876923077,
+    "type": "live"
   },
   {
     "date": "2026-10-16",
@@ -261,7 +269,8 @@
     "promoter": "AEG",
     "capacity": 1300,
     "sold": 129,
-    "pct": 0.09923076923
+    "pct": 0.0992307692,
+    "type": "live"
   },
   {
     "date": "2026-10-17",
@@ -272,8 +281,9 @@
     "name": "ALPHA WOLF",
     "promoter": "effigy",
     "capacity": 1300,
-    "sold": 177,
-    "pct": 0.1361538462
+    "sold": 179,
+    "pct": 0.1376923077,
+    "type": "live"
   },
   {
     "date": "2026-10-19",
@@ -284,8 +294,9 @@
     "name": "GUILT TRIP",
     "promoter": "effigy",
     "capacity": 1300,
-    "sold": 155,
-    "pct": 0.1192307692
+    "sold": 162,
+    "pct": 0.1246153846,
+    "type": "live"
   },
   {
     "date": "2026-10-20",
@@ -296,8 +307,22 @@
     "name": "The Devil Wears Prada",
     "promoter": "DHP",
     "capacity": 1300,
-    "sold": 331,
-    "pct": 0.2546153846
+    "sold": 334,
+    "pct": 0.2569230769,
+    "type": "live"
+  },
+  {
+    "date": "2026-10-22",
+    "day": 22,
+    "month": 10,
+    "monthName": "OCTOBER",
+    "year": 2026,
+    "name": "Gurriers",
+    "promoter": "Crosstown Concerts",
+    "capacity": 1300,
+    "sold": 14,
+    "pct": 0.0107692308,
+    "type": "live"
   },
   {
     "date": "2026-10-23",
@@ -308,8 +333,9 @@
     "name": "Panchiko",
     "promoter": "DHP",
     "capacity": 1300,
-    "sold": 1075,
-    "pct": 0.8269230769
+    "sold": 1088,
+    "pct": 0.8369230769,
+    "type": "live"
   },
   {
     "date": "2026-10-24",
@@ -321,7 +347,8 @@
     "promoter": "Triple A",
     "capacity": 1300,
     "sold": 290,
-    "pct": 0.2230769231
+    "pct": 0.2230769231,
+    "type": "live"
   },
   {
     "date": "2026-10-27",
@@ -332,8 +359,9 @@
     "name": "LA Guns",
     "promoter": "Divergent",
     "capacity": 1300,
-    "sold": 272,
-    "pct": 0.2092307692
+    "sold": 275,
+    "pct": 0.2115384615,
+    "type": "live"
   },
   {
     "date": "2026-10-29",
@@ -345,7 +373,8 @@
     "promoter": "Crosstown Concerts",
     "capacity": 1300,
     "sold": 234,
-    "pct": 0.18
+    "pct": 0.18,
+    "type": "live"
   },
   {
     "date": "2026-10-30",
@@ -357,7 +386,8 @@
     "promoter": "Crosstown Concerts",
     "capacity": 1300,
     "sold": 60,
-    "pct": 0.04615384615
+    "pct": 0.0461538462,
+    "type": "live"
   },
   {
     "date": "2026-10-31",
@@ -368,8 +398,9 @@
     "name": "ARCHSPIRE",
     "promoter": "Effigy",
     "capacity": 1300,
-    "sold": 189,
-    "pct": 0.1453846154
+    "sold": 195,
+    "pct": 0.15,
+    "type": "live"
   },
   {
     "date": "2026-11-05",
@@ -380,8 +411,9 @@
     "name": "Overpass",
     "promoter": "Live Nation",
     "capacity": 1300,
-    "sold": 624,
-    "pct": 0.48
+    "sold": 630,
+    "pct": 0.4846153846,
+    "type": "live"
   },
   {
     "date": "2026-11-06",
@@ -392,8 +424,9 @@
     "name": "Sol & The Gang",
     "promoter": "Columbo Music",
     "capacity": 1300,
-    "sold": 178,
-    "pct": 0.1369230769
+    "sold": 181,
+    "pct": 0.1392307692,
+    "type": "live"
   },
   {
     "date": "2026-11-07",
@@ -405,7 +438,21 @@
     "promoter": "Effigy",
     "capacity": 1300,
     "sold": 87,
-    "pct": 0.06692307692
+    "pct": 0.0669230769,
+    "type": "live"
+  },
+  {
+    "date": "2026-11-10",
+    "day": 10,
+    "month": 11,
+    "monthName": "NOVEMBER",
+    "year": 2026,
+    "name": "Ole 60",
+    "promoter": "AEG",
+    "capacity": 1300,
+    "sold": 153,
+    "pct": 0.1176923077,
+    "type": "live"
   },
   {
     "date": "2026-11-11",
@@ -416,8 +463,9 @@
     "name": "Morcheeba",
     "promoter": "JOY.",
     "capacity": 1300,
-    "sold": 623,
-    "pct": 0.4792307692
+    "sold": 666,
+    "pct": 0.5123076923,
+    "type": "live"
   },
   {
     "date": "2026-11-12",
@@ -428,8 +476,9 @@
     "name": "Kid Kapichi",
     "promoter": "DHP",
     "capacity": 1300,
-    "sold": 178,
-    "pct": 0.1369230769
+    "sold": 180,
+    "pct": 0.1384615385,
+    "type": "live"
   },
   {
     "date": "2026-11-13",
@@ -440,8 +489,9 @@
     "name": "FINK",
     "promoter": "DHP",
     "capacity": 1300,
-    "sold": 211,
-    "pct": 0.1623076923
+    "sold": 213,
+    "pct": 0.1638461538,
+    "type": "live"
   },
   {
     "date": "2026-11-14",
@@ -452,8 +502,9 @@
     "name": "The Undertones: 50th Anniversary Show",
     "promoter": "The Gig Cartel",
     "capacity": 1300,
-    "sold": 320,
-    "pct": 0.2461538462
+    "sold": 322,
+    "pct": 0.2476923077,
+    "type": "live"
   },
   {
     "date": "2026-11-16",
@@ -464,8 +515,9 @@
     "name": "Seb Lowe",
     "promoter": "SJM",
     "capacity": 1300,
-    "sold": 217,
-    "pct": 0.1669230769
+    "sold": 222,
+    "pct": 0.1707692308,
+    "type": "live"
   },
   {
     "date": "2026-11-18",
@@ -476,8 +528,22 @@
     "name": "Drake Milligan",
     "promoter": "AEG",
     "capacity": 1300,
-    "sold": 908,
-    "pct": 0.6984615385
+    "sold": 910,
+    "pct": 0.7,
+    "type": "live"
+  },
+  {
+    "date": "2026-11-20",
+    "day": 20,
+    "month": 11,
+    "monthName": "NOVEMBER",
+    "year": 2026,
+    "name": "Waylon Wyatt",
+    "promoter": "AEG",
+    "capacity": 1300,
+    "sold": 617,
+    "pct": 0.4746153846,
+    "type": "live"
   },
   {
     "date": "2026-11-28",
@@ -488,8 +554,9 @@
     "name": "Reverend and the Makers",
     "promoter": "SJM Concerts",
     "capacity": 1300,
-    "sold": 352,
-    "pct": 0.2707692308
+    "sold": 353,
+    "pct": 0.2715384615,
+    "type": "live"
   },
   {
     "date": "2026-11-29",
@@ -500,8 +567,9 @@
     "name": "The Temperance Movement",
     "promoter": "Live Nation",
     "capacity": 1300,
-    "sold": 608,
-    "pct": 0.4676923077
+    "sold": 614,
+    "pct": 0.4723076923,
+    "type": "live"
   },
   {
     "date": "2026-12-04",
@@ -512,8 +580,9 @@
     "name": "Westside Cowboy",
     "promoter": "AEG",
     "capacity": 1300,
-    "sold": 776,
-    "pct": 0.5969230769
+    "sold": 795,
+    "pct": 0.6115384615,
+    "type": "live"
   },
   {
     "date": "2026-12-09",
@@ -524,8 +593,9 @@
     "name": "Dominum",
     "promoter": "Killimanjaro",
     "capacity": 1300,
-    "sold": 202,
-    "pct": 0.1553846154
+    "sold": 205,
+    "pct": 0.1576923077,
+    "type": "live"
   },
   {
     "date": "2026-12-11",
@@ -534,10 +604,24 @@
     "monthName": "DECEMBER",
     "year": 2026,
     "name": "Sevendust",
-    "promoter": "Divergent Promotions",
+    "promoter": "divergent",
     "capacity": 1300,
-    "sold": 255,
-    "pct": 0.1961538462
+    "sold": 264,
+    "pct": 0.2030769231,
+    "type": "live"
+  },
+  {
+    "date": "2026-12-17",
+    "day": 17,
+    "month": 12,
+    "monthName": "DECEMBER",
+    "year": 2026,
+    "name": "GREEN LUNG",
+    "promoter": "effigy",
+    "capacity": 1300,
+    "sold": 731,
+    "pct": 0.5623076923,
+    "type": "live"
   },
   {
     "date": "2027-02-03",
@@ -548,8 +632,9 @@
     "name": "The scratch",
     "promoter": "DHP",
     "capacity": 1300,
-    "sold": 145,
-    "pct": 0.1115384615
+    "sold": 146,
+    "pct": 0.1123076923,
+    "type": "live"
   },
   {
     "date": "2027-03-06",
@@ -560,8 +645,9 @@
     "name": "The View",
     "promoter": "RG Live",
     "capacity": 1300,
-    "sold": 159,
-    "pct": 0.1223076923
+    "sold": 170,
+    "pct": 0.1307692308,
+    "type": "live"
   },
   {
     "date": "2027-05-01",
@@ -573,6 +659,7 @@
     "promoter": "wave",
     "capacity": 1300,
     "sold": 0,
-    "pct": 0.0
+    "pct": 0.0,
+    "type": "live"
   }
 ]

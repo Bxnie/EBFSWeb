@@ -254,22 +254,21 @@ function extractAccentsFromImage(img) {
   }
   if (!primary && accentCandidates.length) primary = accentCandidates[0]; // fallback if nothing passes sat gate
   if (!primary) return { warm: null, cool: null, dark: null };
-  if (!secondary) secondary = primary; // single dominant hue
 
-  // Assign warm/cool by hue: warm = red/orange/yellow (avoid green), cool = blue/cyan/purple
-  const isWarm = (h) => (h <= 75 || h >= 310);
-  const pWarm = isWarm(primary.h);
-  const warmSrc = pWarm ? primary.avg : secondary.avg;
-  const coolSrc = pWarm ? secondary.avg : primary.avg;
-
-  // Dark ambient color for background
+  // warm = most dominant accent, cool = second accent (or derived complement if none found)
   const darkSrc = darkCandidates[0] ? darkCandidates[0].avg : null;
+  const warmNorm = normalizeAccentColor(primary.avg, 0.58, 0.76);
 
-  return {
-    warm: normalizeAccentColor(warmSrc, 0.58, 0.76),
-    cool: normalizeAccentColor(coolSrc, 0.62, 0.82),
-    dark: darkSrc,
-  };
+  let coolNorm;
+  if (secondary) {
+    coolNorm = normalizeAccentColor(secondary.avg, 0.62, 0.82);
+  } else {
+    // Derive a visually distinct cool from the primary: rotate hue 150° and desaturate slightly
+    const { h, s } = rgbToHsl(warmNorm);
+    coolNorm = hslToRgb({ h: (h + 150) % 360, s: Math.max(0.35, s * 0.8), l: 0.68 });
+  }
+
+  return { warm: warmNorm, cool: coolNorm, dark: darkSrc };
 }
 
 function getEventImageUrl(event) {
@@ -895,6 +894,8 @@ function UpcomingChrome({ events, active, tick, warmRgb, coolRgb, panelHeightRef
         soldTheme={soldTheme}
         lowTheme={lowTheme}
         monthRgb={warmRgb}
+        warmRgb={warmRgb}
+        coolRgb={coolRgb}
         panelHeightRef={panelHeightRef}
         borderProgress={borderProgress}
       />
