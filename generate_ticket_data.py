@@ -1,12 +1,15 @@
 #!/usr/bin/env python3
 """
-Generates ticket-data.json from the Bristol Ticket Counts spreadsheet.
-Reads the 'Live' and 'Club' sheets (summary sheets) and outputs the same
-JSON format as ticket-data.json.
+Generates ticket-data.json from the "Summary" sheet of the Electric Bristol
+Ticket Count spreadsheet (.xlsx).
+
+The Summary sheet has no Live/Club split, so each show's "type" is carried over
+from the existing ticket-data.json (matched on date + name). New shows default
+to "live" and are listed so they can be checked.
 
 Usage:
-    python3 generate_ticket_data.py "22.05.26 Bristol Ticket Counts.xlsx"
-    python3 generate_ticket_data.py  # uses the first .xlsx found in current dir
+    python3 generate_ticket_data.py "Electric Bristol Ticket Count 201026.xlsx"
+    python3 generate_ticket_data.py  # uses the newest .xlsx found in current dir
 """
 
 import json
@@ -27,48 +30,87 @@ MONTH_NAMES = {
     9: "SEPTEMBER", 10: "OCTOBER", 11: "NOVEMBER", 12: "DECEMBER",
 }
 
-# Column indices (0-based) in the Live/Club summary sheets
+SHEET_NAME = "Summary"
+
+# Column indices (0-based) in the Summary sheet
 COL_DATE = 0
-COL_EVENT = 3
-COL_PROMOTER = 4
-COL_CAPACITY = 5
-COL_TOTAL_SALES = 7  # "Total Sales" — the current live count
+COL_ONSALE = 1
+COL_EVENT = 4
+COL_PROMOTER = 5
+COL_CAPACITY = 6
+COL_CURRENT_SALES = 8  # "Current Sales" — the current live count
+# Columns after this whose header is a date hold the weekly sales history. Shows
+# that have already happened have Current Sales 0, so the latest of these is used.
+COL_HISTORY_START = 17
+
+OUT_PATH = "ticket-data.json"
 
 
-def parse_capacity(value):
-    """Convert capacity cell value (e.g. '1,300', '3000', 1300) to int."""
-    if value is None:
+def parse_int(value):
+    """Convert a cell value (e.g. '1,300', 1300, 645, '#VALUE!') to int, or None."""
+    try:
+        return int(str(value).replace(",", "").strip())
+    except (ValueError, TypeError):
         return None
-    return int(str(value).replace(",", "").strip())
 
 
-def extract_shows(ws, sheet_type):
-    """Extract all show rows from a summary sheet (Live or Club)."""
+def load_existing_types():
+    """Map (date, name) -> type from the current ticket-data.json."""
+    if not os.path.exists(OUT_PATH):
+        return {}
+    with open(OUT_PATH) as f:
+        return {(s["date"], s["name"]): s.get("type", "live") for s in json.load(f)}
+
+
+def history_columns(rows):
+    """Indices of the dated weekly-sales columns, taken from the header row."""
+    for row in rows:
+        if row and row[COL_DATE] == "Event Date":
+            return [i for i, v in enumerate(row)
+                    if i >= COL_HISTORY_START and isinstance(v, datetime)]
+    return []
+
+
+def latest_sales(row, history_cols):
+    for i in reversed(history_cols):
+        if i < len(row):
+            value = parse_int(row[i])
+            if value:
+                return value
+    return 0
+
+
+def extract_shows(rows, existing_types):
+    history_cols = history_columns(rows)
     shows = []
-    for row in ws.iter_rows(min_row=1, values_only=True):
+    new_shows = []
+    for row in rows:
+        if len(row) <= COL_CURRENT_SALES:
+            continue
         event_date = row[COL_DATE]
         if not isinstance(event_date, datetime):
             continue
-        capacity_raw = row[COL_CAPACITY]
-        if capacity_raw is None or str(capacity_raw).strip().lower() in ("", "capacity"):
-            continue
-        capacity = parse_capacity(capacity_raw)
+        capacity = parse_int(row[COL_CAPACITY])
         if not capacity:
             continue
         event_name = row[COL_EVENT]
-        if not event_name or not isinstance(event_name, str):
+        if not isinstance(event_name, str) or not event_name.strip():
             continue
         event_name = event_name.strip()
-        promoter = row[COL_PROMOTER]
-        promoter = promoter.strip() if isinstance(promoter, str) else str(promoter or "")
-        total_sales_raw = row[COL_TOTAL_SALES]
-        try:
-            sold = int(total_sales_raw) if total_sales_raw not in (None, "", "#REF!") else 0
-        except (ValueError, TypeError):
-            sold = 0
-        pct = round(sold / capacity, 10) if capacity else 0.0
+        promoter = str(row[COL_PROMOTER] or "").strip()
+        sold = parse_int(row[COL_CURRENT_SALES]) or latest_sales(row, history_cols)
+        pct = round(sold / capacity, 10)
+        onsale_date = row[COL_ONSALE]
+        onsale = onsale_date.strftime("%Y-%m-%d") if isinstance(onsale_date, datetime) else None
+        date = event_date.strftime("%Y-%m-%d")
+        key = (date, event_name)
+        if key in existing_types:
+            show_type = existing_types[key]
+        else:
+            show_type = "live"
+            new_shows.append(key)
         shows.append({
-            "date": event_date.strftime("%Y-%m-%d"),
+            "date": date,
             "day": event_date.day,
             "month": event_date.month,
             "monthName": MONTH_NAMES[event_date.month],
@@ -78,16 +120,17 @@ def extract_shows(ws, sheet_type):
             "capacity": capacity,
             "sold": sold,
             "pct": pct,
-            "type": sheet_type,
+            "onsale": onsale,
+            "type": show_type,
         })
-    return shows
+    return shows, new_shows
 
 
 def main():
     if len(sys.argv) > 1:
         xlsx_path = sys.argv[1]
     else:
-        matches = glob.glob("*.xlsx")
+        matches = sorted(glob.glob("*.xlsx"), key=os.path.getmtime, reverse=True)
         if not matches:
             print("Error: no .xlsx file found in current directory.")
             sys.exit(1)
@@ -98,31 +141,29 @@ def main():
         print(f"Error: file not found: {xlsx_path}")
         sys.exit(1)
 
-    wb = openpyxl.load_workbook(xlsx_path, data_only=True)
+    wb = openpyxl.load_workbook(xlsx_path, read_only=True, data_only=True)
+    if SHEET_NAME not in wb.sheetnames:
+        print(f"Error: sheet '{SHEET_NAME}' not found in {xlsx_path}")
+        sys.exit(1)
+    rows = list(wb[SHEET_NAME].iter_rows(values_only=True))
 
-    all_shows = []
-    seen_dates = set()
+    all_shows, new_shows = extract_shows(rows, load_existing_types())
 
-    for sheet_name in ("Live", "Club"):
-        if sheet_name not in wb.sheetnames:
-            print(f"Warning: sheet '{sheet_name}' not found, skipping.")
-            continue
-        ws = wb[sheet_name]
-        sheet_type = sheet_name.lower()
-        for show in extract_shows(ws, sheet_type):
-            key = (show["date"], show["name"])
-            if key not in seen_dates:
-                seen_dates.add(key)
-                all_shows.append(show)
-
+    # Drop duplicate (date, name) rows, keeping the first
+    seen = set()
+    all_shows = [s for s in all_shows
+                 if (s["date"], s["name"]) not in seen and not seen.add((s["date"], s["name"]))]
     all_shows.sort(key=lambda s: s["date"])
 
-    out_path = "ticket-data.json"
-    with open(out_path, "w") as f:
+    with open(OUT_PATH, "w") as f:
         json.dump(all_shows, f, indent=2)
         f.write("\n")
 
-    print(f"Written {len(all_shows)} shows to {out_path}")
+    print(f"Written {len(all_shows)} shows to {OUT_PATH}")
+    if new_shows:
+        print("New shows (defaulted to type 'live' — change to 'club' in the JSON if needed):")
+        for date, name in new_shows:
+            print(f"  {date}  {name}")
 
 
 if __name__ == "__main__":

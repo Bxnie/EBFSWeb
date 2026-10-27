@@ -60,7 +60,16 @@
       "Bash(gh repo *)",
       "Bash(git rm *)",
       "Bash(git commit *)",
-      "Bash(git push *)"
+      "Bash(git push *)",
+      "Bash(xxd /home/ben/EBFSWeb/current-event.json)",
+      "Bash(ip addr *)",
+      "Bash(sudo -n arp-scan --interface=wlan0 --localnet)",
+      "Bash(nmap *)",
+      "Bash(arp -a)",
+      "Bash(sort -t. -k4 -n)",
+      "Bash(ip neigh *)",
+      "Bash(tee /tmp/claude-1000/-home-ben-EBFSWeb/512d6ee2-3b39-4f28-88f5-4b9e799e570d/scratchpad/nmap_scan.txt)",
+      "Bash(timeout 8 avahi-browse -a -t -r)"
     ]
   }
 }

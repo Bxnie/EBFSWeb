@@ -4,7 +4,7 @@
 const LOOP_W = 1080;
 const LOOP_H = 1080;
 const LOOP_RED_GLOW = "#FF2D3F";
-const FALLBACK_WARM = { r: 210, g: 165, b: 60 };  // gold fallback
+const FALLBACK_WARM = { r: 210, g: 165, b: 60 }; // gold fallback
 const FALLBACK_COOL = { r: 100, g: 175, b: 230 }; // icy blue fallback
 const INTRO_HOLD_MS = window.LOOP_INTRO_EXTRA_MS || 0;
 const loopScaleMs = window.scaleMs || ((ms) => ms);
@@ -186,13 +186,18 @@ function hslToRgb(hsl) {
 
 function normalizeAccentColor(rgb, minL, maxL) {
   const { h, s, l } = rgbToHsl(rgb);
-  return hslToRgb({ h, s: Math.max(0.45, Math.min(0.9, s * 1.25)), l: Math.max(minL, Math.min(maxL, l * 1.08)) });
+  return hslToRgb({
+    h,
+    s: Math.max(0.45, Math.min(0.9, s * 1.25)),
+    l: Math.max(minL, Math.min(maxL, l * 1.08)),
+  });
 }
 
 function extractAccentsFromImage(img) {
   const canvas = document.createElement("canvas");
   const ctx = canvas.getContext("2d", { willReadFrequently: true });
-  if (!ctx || !img.naturalWidth || !img.naturalHeight) return { warm: null, cool: null, dark: null };
+  if (!ctx || !img.naturalWidth || !img.naturalHeight)
+    return { warm: null, cool: null, dark: null };
 
   const size = 64;
   canvas.width = size;
@@ -212,8 +217,11 @@ function extractAccentsFromImage(img) {
 
   for (let i = 0; i < data.length; i += 4) {
     if (data[i + 3] < 200) continue;
-    const r = data[i], g = data[i + 1], b = data[i + 2];
-    const max = Math.max(r, g, b), min = Math.min(r, g, b);
+    const r = data[i],
+      g = data[i + 1],
+      b = data[i + 2];
+    const max = Math.max(r, g, b),
+      min = Math.min(r, g, b);
     const sat = max === 0 ? 0 : (max - min) / max;
     const lit = (max + min) / 2 / 255;
     if (sat < 0.18) continue; // ignore greys and near-neutral colours
@@ -223,34 +231,54 @@ function extractAccentsFromImage(img) {
     if (lit >= 0.12 && lit <= 0.94) {
       const w = sat * sat * (0.3 + lit); // square sat so low-sat colours don't accumulate
       const bk = accentBuckets.get(key) || { score: 0, r: 0, g: 0, b: 0 };
-      bk.score += w; bk.r += r * w; bk.g += g * w; bk.b += b * w;
+      bk.score += w;
+      bk.r += r * w;
+      bk.g += g * w;
+      bk.b += b * w;
       accentBuckets.set(key, bk);
     }
     if (lit < 0.42 && sat >= 0.08) {
       const w = (0.1 + sat) * (0.6 - lit); // weight by darkness
       const bk = darkBuckets.get(key) || { score: 0, r: 0, g: 0, b: 0 };
-      bk.score += w; bk.r += r * w; bk.g += g * w; bk.b += b * w;
+      bk.score += w;
+      bk.r += r * w;
+      bk.g += g * w;
+      bk.b += b * w;
       darkBuckets.set(key, bk);
     }
   }
 
-  const toCandidates = (map) => [...map.values()].map((bk) => {
-    const avg = { r: bk.r / bk.score, g: bk.g / bk.score, b: bk.b / bk.score };
-    return { avg, score: bk.score, ...rgbToHsl(avg) };
-  }).sort((a, b) => b.score - a.score);
+  const toCandidates = (map) =>
+    [...map.values()]
+      .map((bk) => {
+        const avg = {
+          r: bk.r / bk.score,
+          g: bk.g / bk.score,
+          b: bk.b / bk.score,
+        };
+        return { avg, score: bk.score, ...rgbToHsl(avg) };
+      })
+      .sort((a, b) => b.score - a.score);
 
   const accentCandidates = toCandidates(accentBuckets);
-  const darkCandidates   = toCandidates(darkBuckets);
+  const darkCandidates = toCandidates(darkBuckets);
 
   // Pick two most dominant accent colors with hue separation >= 40°
   // Require meaningful saturation so washed-out colours don't become accents
-  const viableAccents = accentCandidates.filter(c => c.s >= 0.30);
-  let primary = null, secondary = null;
+  const viableAccents = accentCandidates.filter((c) => c.s >= 0.3);
+  let primary = null,
+    secondary = null;
   for (const c of viableAccents) {
-    if (!primary) { primary = c; continue; }
+    if (!primary) {
+      primary = c;
+      continue;
+    }
     const hueDiff = Math.abs(c.h - primary.h);
     const sep = Math.min(hueDiff, 360 - hueDiff);
-    if (sep >= 40) { secondary = c; break; }
+    if (sep >= 40) {
+      secondary = c;
+      break;
+    }
   }
   if (!primary && accentCandidates.length) primary = accentCandidates[0]; // fallback if nothing passes sat gate
   if (!primary) return { warm: null, cool: null, dark: null };
@@ -265,7 +293,11 @@ function extractAccentsFromImage(img) {
   } else {
     // Derive a visually distinct cool from the primary: rotate hue 150° and desaturate slightly
     const { h, s } = rgbToHsl(warmNorm);
-    coolNorm = hslToRgb({ h: (h + 150) % 360, s: Math.max(0.35, s * 0.8), l: 0.68 });
+    coolNorm = hslToRgb({
+      h: (h + 150) % 360,
+      s: Math.max(0.35, s * 0.8),
+      l: 0.68,
+    });
   }
 
   return { warm: warmNorm, cool: coolNorm, dark: darkSrc };
@@ -279,27 +311,43 @@ function getEventImageUrl(event) {
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-+|-+$/g, "");
-  return `event images/${slug}.jpg`;
+  return `eventimages/${slug}.jpg`;
 }
 
 function useEventAccents(imageUrl) {
-  const [accents, setAccents] = React.useState({ warm: FALLBACK_WARM, cool: FALLBACK_COOL, dark: null });
+  const [accents, setAccents] = React.useState({
+    warm: FALLBACK_WARM,
+    cool: FALLBACK_COOL,
+    dark: null,
+  });
 
   React.useEffect(() => {
     let cancelled = false;
     setAccents({ warm: FALLBACK_WARM, cool: FALLBACK_COOL, dark: null });
-    if (!imageUrl) return () => { cancelled = true; };
+    if (!imageUrl)
+      return () => {
+        cancelled = true;
+      };
 
     const img = new Image();
-    img.crossOrigin = 'anonymous';
+    img.crossOrigin = "anonymous";
     img.onload = () => {
       if (cancelled) return;
       const next = extractAccentsFromImage(img);
-      setAccents({ warm: next.warm || FALLBACK_WARM, cool: next.cool || FALLBACK_COOL, dark: next.dark });
+      setAccents({
+        warm: next.warm || FALLBACK_WARM,
+        cool: next.cool || FALLBACK_COOL,
+        dark: next.dark,
+      });
     };
-    img.onerror = () => { if (!cancelled) setAccents({ warm: FALLBACK_WARM, cool: FALLBACK_COOL, dark: null }); };
+    img.onerror = () => {
+      if (!cancelled)
+        setAccents({ warm: FALLBACK_WARM, cool: FALLBACK_COOL, dark: null });
+    };
     img.src = imageUrl;
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, [imageUrl]);
 
   return accents;
@@ -491,21 +539,6 @@ function TonightPanel({ event, visuals, warmRgb, coolRgb }) {
               </span>
               <span
                 style={{
-                  fontSize: 26,
-                  color: "#fff",
-                  opacity: 0.8,
-                  textShadow: `3px 3px 0 rgba(0,0,0,0.85)`,
-                }}
-              >
-                x
-              </span>
-              {window.HollowBolt ? (
-                <window.HollowBolt color={accentColor} size={38} shadow={true} />
-              ) : (
-                <StatusMark kind="fast" size={38} />
-              )}
-              <span
-                style={{
                   fontFamily: "'Space Grotesk',sans-serif",
                   textTransform: "uppercase",
                   fontSize: 26,
@@ -528,11 +561,11 @@ function TonightPanel({ event, visuals, warmRgb, coolRgb }) {
               fontSize: 120,
               lineHeight: 0.9,
               letterSpacing: "-0.01em",
-               color: "#fff",
-               textShadow: `0 0 18px rgba(255,255,255,0.18), 0 2px 18px rgba(0,0,0,0.82)`,
-               marginBottom: 14,
-             }}
-           >
+              color: "#fff",
+              textShadow: `0 0 18px rgba(255,255,255,0.18), 0 2px 18px rgba(0,0,0,0.82)`,
+              marginBottom: 14,
+            }}
+          >
             {cleanName}
           </div>
 
@@ -540,17 +573,23 @@ function TonightPanel({ event, visuals, warmRgb, coolRgb }) {
           <div
             style={{
               fontFamily: "'JetBrains Mono',monospace",
-               fontSize: 21,
-               letterSpacing: "0.16em",
-               color: "#fff",
-               textShadow: `0 0 12px rgba(255,255,255,0.12), 0 2px 10px rgba(0,0,0,0.74)`,
-               fontWeight: 700,
-               opacity: 0.9,
-             }}
+              fontSize: 21,
+              letterSpacing: "0.16em",
+              color: "#fff",
+              textShadow: `0 0 12px rgba(255,255,255,0.12), 0 2px 10px rgba(0,0,0,0.74)`,
+              fontWeight: 700,
+              opacity: 0.9,
+            }}
           >
-            <span>{dayLabel} {monthShort}</span>
-            <span style={{ color: accentColor }}> | </span>
-            <span>{doorTime}</span>
+            <span>
+              {dayLabel} {monthShort}{" "}
+            </span>
+            {window.HollowBolt ? (
+              <window.HollowBolt color={accentColor} size={26} shadow={true} />
+            ) : (
+              <StatusMark kind="fast" size={38} />
+            )}
+            <span> {doorTime}</span>
           </div>
         </div>
 
@@ -572,7 +611,8 @@ function TonightPanel({ event, visuals, warmRgb, coolRgb }) {
                 width: s,
                 height: s,
                 borderTop: p[0] === "t" ? `2px solid ${accentColor}` : "none",
-                borderBottom: p[0] === "b" ? `2px solid ${accentColor}` : "none",
+                borderBottom:
+                  p[0] === "b" ? `2px solid ${accentColor}` : "none",
                 borderLeft: p[1] === "l" ? `2px solid ${accentColor}` : "none",
                 borderRight: p[1] === "r" ? `2px solid ${accentColor}` : "none",
                 filter: `drop-shadow(0 0 6px ${accentGlowStrong}) drop-shadow(0 0 14px ${accentGlowSoft})`,
@@ -598,8 +638,15 @@ function LoopDisplay({ events, currentEvent }) {
     () => currentEvent || pickTonightEvent(events),
     [events, currentEvent],
   );
-  const tonightImageUrl = React.useMemo(() => getEventImageUrl(tonight), [tonight]);
-  const { warm: warmRgb, cool: coolRgb, dark: darkRgb } = useEventAccents(tonightImageUrl);
+  const tonightImageUrl = React.useMemo(
+    () => getEventImageUrl(tonight),
+    [tonight],
+  );
+  const {
+    warm: warmRgb,
+    cool: coolRgb,
+    dark: darkRgb,
+  } = useEventAccents(tonightImageUrl);
 
   const welcomeOpacity =
     stage === "welcomeIn"
@@ -697,7 +744,11 @@ function LoopDisplay({ events, currentEvent }) {
           opacity: 1,
         }}
       >
-        <BackgroundSlideshow coolRgb={coolRgb} darkRgb={darkRgb} warmRgb={warmRgb} />
+        <BackgroundSlideshow
+          coolRgb={coolRgb}
+          darkRgb={darkRgb}
+          warmRgb={warmRgb}
+        />
         {/* Same atmospheric overlays as DataMosaic */}
         <div
           style={{
@@ -718,7 +769,11 @@ function LoopDisplay({ events, currentEvent }) {
       </div>
 
       {/* Welcome layer */}
-      <WelcomePanel opacity={welcomeOpacity} warmRgb={warmRgb} coolRgb={coolRgb} />
+      <WelcomePanel
+        opacity={welcomeOpacity}
+        warmRgb={warmRgb}
+        coolRgb={coolRgb}
+      />
 
       {/* Upcoming-shows layer — wraps the existing DataMosaic content (minus its
           own background) inside a fade. We render the FULL DataMosaic and let
@@ -754,11 +809,21 @@ function LoopDisplay({ events, currentEvent }) {
           pointerEvents: "none",
         }}
       >
-        <TonightPanel event={tonight} visuals={tonightVisuals} warmRgb={warmRgb} coolRgb={coolRgb} />
+        <TonightPanel
+          event={tonight}
+          visuals={tonightVisuals}
+          warmRgb={warmRgb}
+          coolRgb={coolRgb}
+        />
       </div>
 
       {/* Animated screen-to-panel corner brackets */}
-      <ScreenCorners stage={stage} stageElapsed={stageElapsed} warmRgb={warmRgb} panelHeightRef={panelHeightRef} />
+      <ScreenCorners
+        stage={stage}
+        stageElapsed={stageElapsed}
+        warmRgb={warmRgb}
+        panelHeightRef={panelHeightRef}
+      />
     </div>
   );
 }
@@ -782,7 +847,15 @@ function usePulse(periodMs) {
   return 0.7 + 0.3 * Math.cos(t * 2 * Math.PI);
 }
 
-function UpcomingChrome({ events, active, tick, warmRgb, coolRgb, panelHeightRef, borderProgress = 1 }) {
+function UpcomingChrome({
+  events,
+  active,
+  tick,
+  warmRgb,
+  coolRgb,
+  panelHeightRef,
+  borderProgress = 1,
+}) {
   const pulseOpacity = usePulse(loopScaleMs(1600));
   const display = window.getDisplayEvents
     ? window.getDisplayEvents(events)
@@ -841,8 +914,16 @@ function UpcomingChrome({ events, active, tick, warmRgb, coolRgb, panelHeightRef
   const accentColor = warmColor;
   const accentGlowStrong = warmGlowStrong;
   const accentGlowSoft = warmGlowSoft;
-  const soldTheme = { css: rgbCss(warmRgb), glow1: rgbCss(warmRgb, 0.9), glow2: rgbCss(warmRgb, 0.52) };
-  const lowTheme  = { css: rgbCss(coolRgb), glow1: rgbCss(coolRgb, 0.9), glow2: rgbCss(coolRgb, 0.52) };
+  const soldTheme = {
+    css: rgbCss(warmRgb),
+    glow1: rgbCss(warmRgb, 0.9),
+    glow2: rgbCss(warmRgb, 0.52),
+  };
+  const lowTheme = {
+    css: rgbCss(coolRgb),
+    glow1: rgbCss(coolRgb, 0.9),
+    glow2: rgbCss(coolRgb, 0.52),
+  };
 
   return (
     <div style={{ position: "absolute", inset: 0 }}>
@@ -931,19 +1012,19 @@ function ScreenCorners({ stage, stageElapsed, warmRgb, panelHeightRef }) {
 
   // Panel bounds — ListingsPanel writes these every render so we track live height changes
   const pb = panelHeightRef ? panelHeightRef.current : null;
-  const panelTop    = pb ? pb.top    : 269;
+  const panelTop = pb ? pb.top : 269;
   const panelBottom = pb ? pb.bottom : 929;
 
   const SCREEN_M = 50;
   const SC = {
-    tl: [SCREEN_M,        SCREEN_M],
-    tr: [SCREEN_M,        1080 - SCREEN_M],
+    tl: [SCREEN_M, SCREEN_M],
+    tr: [SCREEN_M, 1080 - SCREEN_M],
     bl: [1080 - SCREEN_M, SCREEN_M],
     br: [1080 - SCREEN_M, 1080 - SCREEN_M],
   };
   const PC = {
-    tl: [panelTop,    32],
-    tr: [panelTop,    1048],
+    tl: [panelTop, 32],
+    tr: [panelTop, 1048],
     bl: [panelBottom, 32],
     br: [panelBottom, 1048],
   };
@@ -955,8 +1036,14 @@ function ScreenCorners({ stage, stageElapsed, warmRgb, panelHeightRef }) {
   // Slow breathing sine for glow while corners hold at screen position
   const breathe = 0.72 + 0.28 * Math.sin(stageElapsed * 0.0016);
 
-  if (stage === "welcomeIn" || stage === "welcomeHold" || stage === "welcomeOut"
-      || stage === "upcomingIn" || stage === "upcomingHold" || stage === "upcomingOut") {
+  if (
+    stage === "welcomeIn" ||
+    stage === "welcomeHold" ||
+    stage === "welcomeOut" ||
+    stage === "upcomingIn" ||
+    stage === "upcomingHold" ||
+    stage === "upcomingOut"
+  ) {
     return null;
   } else if (stage === "tonightIn") {
     opacity = 1 - easeInOut(Math.min(1, stageElapsed / 1200)) * 0.72;
@@ -974,31 +1061,51 @@ function ScreenCorners({ stage, stageElapsed, warmRgb, panelHeightRef }) {
   // Arm length and glow interpolate between screen (wide, bright) and panel (compact, steady)
   const armLen = 58 - 26 * t;
   const bw = 2.5 - 0.5 * t;
-  const glowFactor = (stage === "welcomeIn" || stage === "welcomeOut" || stage === "welcomeHold") ? breathe * 0.5 : t < 0.5 ? breathe : 1;
-  const gs1 = (stage === "welcomeIn" || stage === "welcomeOut" || stage === "welcomeHold") ? (10 + 10 * (1 - t)) * breathe * 0.5 : (10 + 10 * (1 - t)) * glowFactor;
-  const gs2 = (stage === "welcomeIn" || stage === "welcomeOut" || stage === "welcomeHold") ? (28 + 24 * (1 - t)) * breathe * 0.3 : (28 + 24 * (1 - t)) * glowFactor;
+  const glowFactor =
+    stage === "welcomeIn" || stage === "welcomeOut" || stage === "welcomeHold"
+      ? breathe * 0.5
+      : t < 0.5
+        ? breathe
+        : 1;
+  const gs1 =
+    stage === "welcomeIn" || stage === "welcomeOut" || stage === "welcomeHold"
+      ? (10 + 10 * (1 - t)) * breathe * 0.5
+      : (10 + 10 * (1 - t)) * glowFactor;
+  const gs2 =
+    stage === "welcomeIn" || stage === "welcomeOut" || stage === "welcomeHold"
+      ? (28 + 24 * (1 - t)) * breathe * 0.3
+      : (28 + 24 * (1 - t)) * glowFactor;
 
   return (
-    <div style={{ position: "absolute", inset: 0, zIndex: 15, pointerEvents: "none", opacity }}>
+    <div
+      style={{
+        position: "absolute",
+        inset: 0,
+        zIndex: 15,
+        pointerEvents: "none",
+        opacity,
+      }}
+    >
       {["tl", "tr", "bl", "br"].map((key) => {
-        const sc = SC[key], pc = PC[key];
+        const sc = SC[key],
+          pc = PC[key];
         const y = sc[0] + (pc[0] - sc[0]) * t;
         const x = sc[1] + (pc[1] - sc[1]) * t;
-        const isTop  = key[0] === "t";
+        const isTop = key[0] === "t";
         const isLeft = key[1] === "l";
         return (
           <div
             key={key}
             style={{
               position: "absolute",
-              width:  armLen,
+              width: armLen,
               height: armLen,
-              top:  isTop  ? y : y - armLen,
+              top: isTop ? y : y - armLen,
               left: isLeft ? x : x - armLen,
-              borderTop:    isTop    ? `${bw}px solid ${accentColor}` : "none",
-              borderBottom: !isTop   ? `${bw}px solid ${accentColor}` : "none",
-              borderLeft:   isLeft   ? `${bw}px solid ${accentColor}` : "none",
-              borderRight:  !isLeft  ? `${bw}px solid ${accentColor}` : "none",
+              borderTop: isTop ? `${bw}px solid ${accentColor}` : "none",
+              borderBottom: !isTop ? `${bw}px solid ${accentColor}` : "none",
+              borderLeft: isLeft ? `${bw}px solid ${accentColor}` : "none",
+              borderRight: !isLeft ? `${bw}px solid ${accentColor}` : "none",
               filter: `drop-shadow(0 0 ${gs1}px ${accentGlowStrong}) drop-shadow(0 0 ${gs2}px ${accentGlowSoft})`,
             }}
           />

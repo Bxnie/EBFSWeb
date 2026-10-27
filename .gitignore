@@ -4,3 +4,4 @@ __pycache__/
 *.xlsx
 *.mov
 eb-loop.mp4
+timecut-temp-*/

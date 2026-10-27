@@ -103,32 +103,42 @@ function usePulse(periodMs) {
   return 0.7 + 0.3 * Math.cos(t * 2 * Math.PI);
 }
 
-// Status thresholds (based on a 1300-cap baseline; scaled by actual capacity).
-// >= capacity — SOLD OUT (red text, black bolt with red glow)
-// >= 1000     — LOW TIX  (amber text, black bolt with amber glow)
-function statusForCount(sold, capacity) {
+// Status thresholds.
+// >= 92% of capacity     — SOLD OUT (red text, black bolt with red glow)
+// on sale within 30 days — NOW LIVE (amber text, black bolt with amber glow)
+function statusForCount(sold, capacity, onsale) {
   if (!capacity) return null;
-  const ratio = capacity / 1300;
   const soldEff = Math.round(sold);
-  const soldOutAt = capacity; // when capacity is reached
-  const lowAt = Math.round(1000 * ratio);
+  const soldOutAt = capacity * 0.92;
 
-  if (soldEff >= soldOutAt - 5) return "sold"; // tiny float for "effectively sold out"
-  if (soldEff >= lowAt) return "low";
+  if (soldEff >= soldOutAt) return "sold";
+  if (onsale) {
+    const daysSinceOnsale = (Date.now() - new Date(onsale).getTime()) / 86400000;
+    if (daysSinceOnsale >= 0 && daysSinceOnsale <= 30) return "low";
+  }
   return null;
 }
-// 7-month window from today (2026-05-01).
+// Rolling window: today through MONTHS_AHEAD months out. Parsed as local dates
+// so the boundary lands on the right calendar day in any timezone.
+const MONTHS_AHEAD = 7;
+function localDate(key) {
+  const [y, m, d] = key.split("-").map(Number);
+  return new Date(y, m - 1, d);
+}
 function getDisplayEvents(allEvents) {
-  const cutoff = new Date("2026-12-01");
+  const now = new Date();
+  const start = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const cutoff = new Date(start);
+  cutoff.setMonth(cutoff.getMonth() + MONTHS_AHEAD);
   return allEvents
     .filter((e) => {
-      const d = new Date(e.date);
-      if (d < new Date("2026-04-15")) return false;
+      const d = localDate(e.date);
+      if (d < start) return false;
       if (d > cutoff) return false;
       if (e.capacity > 2000) return false; // skip festival outliers
       return true;
     })
-    .sort((a, b) => new Date(a.date) - new Date(b.date));
+    .sort((a, b) => a.date.localeCompare(b.date));
 }
 
 // Shorten long event names so they fit in narrow columns
@@ -158,28 +168,6 @@ function shorten(name) {
   return out;
 }
 
-// Paginate groups so no page exceeds MAX_PER_PAGE events,
-// and never split a month across pages. If a single month is bigger
-// than the cap, it gets its own page (rare — caps are not hard).
-const MAX_PER_PAGE = 25;
-function paginate(groups) {
-  const pages = [];
-  let current = [];
-  let currentCount = 0;
-  for (const g of groups) {
-    const n = g.events.length;
-    if (current.length > 0 && currentCount + n > MAX_PER_PAGE) {
-      pages.push(current);
-      current = [];
-      currentCount = 0;
-    }
-    current.push(g);
-    currentCount += n;
-  }
-  if (current.length) pages.push(current);
-  return pages;
-}
-
 // ---------- ONE PAGE OF LISTINGS ----------
 // Fixed type sizes — same across all pages, calibrated to the densest page (page 2).
 /* const MONTH_SIZE = 36;
@@ -189,11 +177,174 @@ const MONTH_SIZE = 42;
 const EVENT_SIZE = 28;
 const BOLT_SIZE = 28;
 
+// ---------- COLUMN / PAGE LAYOUT ----------
+// The panel clips anything taller than it (overflow: hidden), so pages are
+// measured in pixels rather than in event counts: a page holds as many events
+// as two columns can actually show, and a month may run over a column break.
+const HEADER_H = MONTH_SIZE + 10; // month label + its marginBottom
+const GROUP_GAP = 14; // marginBottom between month blocks in a column
+const ROW_GAP = 2; // event row marginBottom
+const PANEL_MAX_H = 660; // panel maxHeight
+const KEY_ROW_H = 50; // sold-out / now-live footer
+const PAGE_PAD_V = 26; // ListingsPage padding, top + bottom
+const PAGE_PAD_H = 30;
+const PANEL_INSET = 32;
+const STAGE_W = 1080;
+const COL_GAP = 28;
+const NUM_COLS = 2;
+const COL_H = PANEL_MAX_H - KEY_ROW_H - PAGE_PAD_V;
+const COL_W =
+  (STAGE_W - PANEL_INSET * 2 - PAGE_PAD_H * 2 - COL_GAP * (NUM_COLS - 1)) /
+  NUM_COLS;
+// Everything left of the name in an event row: dot, date, status mark, gaps.
+const ROW_FIXED_W = 8 + 10 + EVENT_SIZE * 2.15 + 10 + BOLT_SIZE * 0.85 + 10;
+const NAME_W = COL_W - ROW_FIXED_W;
+const NAME_SIZE = 32; // must match the name span in renderEventRow
+const NAME_LINE_H = NAME_SIZE * 1.12;
+const NAME_MAX_LINES = 3; // WebkitLineClamp
+const NAME_FONT = `700 ${NAME_SIZE}px 'Space Grotesk', sans-serif`;
+// Splitting a month across columns costs a repeated header, so prefer a clean
+// month boundary when it is within this many px of the best balance.
+const SPLIT_PENALTY = 10;
+
+// Name widths come from a canvas using the real font, so wrapped (2- and
+// 3-line) rows are costed correctly. Cache is dropped once webfonts land,
+// since the first measurements fall back to a system font.
+let measureCtx;
+const nameLineCache = new Map();
+if (typeof document !== "undefined" && document.fonts && document.fonts.ready) {
+  document.fonts.ready.then(() => nameLineCache.clear());
+}
+function textWidth(text) {
+  if (measureCtx === undefined) {
+    measureCtx =
+      typeof document !== "undefined"
+        ? document.createElement("canvas").getContext("2d")
+        : null;
+    if (measureCtx) measureCtx.font = NAME_FONT;
+  }
+  if (measureCtx) {
+    measureCtx.font = NAME_FONT;
+    return measureCtx.measureText(text).width;
+  }
+  return text.length * NAME_SIZE * 0.58; // headless fallback
+}
+
+function nameLines(name) {
+  if (nameLineCache.has(name)) return nameLineCache.get(name);
+  const words = String(name).toUpperCase().split(/\s+/).filter(Boolean);
+  let lines = 1;
+  let cur = "";
+  for (const w of words) {
+    const trial = cur ? `${cur} ${w}` : w;
+    if (cur && textWidth(trial) > NAME_W) {
+      lines += 1;
+      cur = w;
+    } else {
+      cur = trial;
+    }
+  }
+  const out = Math.min(NAME_MAX_LINES, lines);
+  nameLineCache.set(name, out);
+  return out;
+}
+
+function rowHeight(e) {
+  const nameH = nameLines(shorten(e.name)) * NAME_LINE_H;
+  return Math.max(EVENT_SIZE * 1.3, nameH) + ROW_GAP;
+}
+
+function colHeight(blocks) {
+  return blocks.reduce(
+    (h, b, i) =>
+      h +
+      HEADER_H +
+      b.events.reduce((rh, e) => rh + rowHeight(e), 0) +
+      (i ? GROUP_GAP : 0),
+    0,
+  );
+}
+
+// Flatten groups to a list of events tagged with their month.
+function flattenGroups(groups) {
+  const flat = [];
+  groups.forEach((g) => g.events.forEach((e) => flat.push({ g, e })));
+  return flat;
+}
+
+// Re-group a run of flattened events into month blocks. A block that picks up
+// where the previous column left off is marked `continued` (header repeats).
+function blocksFrom(items, startsMidMonth = false) {
+  const blocks = [];
+  items.forEach(({ g, e }, i) => {
+    const prev = blocks[blocks.length - 1];
+    if (prev && prev.key === g.key) {
+      prev.events.push(e);
+      return;
+    }
+    blocks.push({
+      ...g,
+      key: g.key,
+      events: [e],
+      continued: i === 0 && startsMidMonth,
+    });
+  });
+  return blocks;
+}
+
+// Split one page's events across NUM_COLS columns, minimising the tallest
+// column. Exhaustive over split points — pages are small.
+function splitColumns(groups) {
+  const flat = flattenGroups(groups);
+  if (!flat.length) return { cols: [], overflow: 0 };
+  let best = null;
+  for (let k = 1; k <= flat.length; k += 1) {
+    const splitsMonth = k < flat.length && flat[k].g.key === flat[k - 1].g.key;
+    const left = blocksFrom(flat.slice(0, k));
+    const right = k < flat.length ? blocksFrom(flat.slice(k), splitsMonth) : [];
+    const hL = colHeight(left);
+    const hR = colHeight(right);
+    const overflow = Math.max(0, hL - COL_H) + Math.max(0, hR - COL_H);
+    const score =
+      overflow * 1000 + Math.max(hL, hR) + (splitsMonth ? SPLIT_PENALTY : 0);
+    if (!best || score < best.score) {
+      best = { score, overflow, cols: right.length ? [left, right] : [left] };
+    }
+  }
+  return { cols: best.cols, overflow: best.overflow };
+}
+
+// Fill pages with as many events as two columns can display without clipping.
+function paginate(groups) {
+  const flat = flattenGroups(groups);
+  const pages = [];
+  let current = [];
+  for (const item of flat) {
+    const next = current.concat([item]);
+    if (current.length && splitColumns(blocksFrom(next)).overflow > 0) {
+      pages.push(blocksFrom(current));
+      current = [item];
+    } else {
+      current = next;
+    }
+  }
+  if (current.length) pages.push(blocksFrom(current));
+  return pages;
+}
+
 const DOT_WARM_FALLBACK = { r: 210, g: 140, b: 50 };
 const DOT_COOL_FALLBACK = { r: 100, g: 175, b: 230 };
 
-function renderEventRow(e, soldTheme, lowTheme, accentCss, warmRgb, coolRgb, pulseOpacity = 1) {
-  const status = statusForCount(e.sold, e.capacity);
+function renderEventRow(
+  e,
+  soldTheme,
+  lowTheme,
+  accentCss,
+  warmRgb,
+  coolRgb,
+  pulseOpacity = 1,
+) {
+  const status = statusForCount(e.sold, e.capacity, e.onsale);
   const isLow = status === "low";
   const isSold = status === "sold";
   const isClub = e.type === "club";
@@ -245,13 +396,18 @@ function renderEventRow(e, soldTheme, lowTheme, accentCss, warmRgb, coolRgb, pul
         const dotGlow1 = `rgba(${dotRgb.r},${dotRgb.g},${dotRgb.b},0.85)`;
         const dotGlow2 = `rgba(${dotRgb.r},${dotRgb.g},${dotRgb.b},0.42)`;
         return (
-          <span style={{
-            width: 8, height: 8, borderRadius: "50%", flexShrink: 0,
-            background: dotCss,
-            boxShadow: `0 0 8px ${dotGlow1}, 0 0 20px ${dotGlow2}`,
-            opacity: isSold ? 1 : pulseOpacity,
-            alignSelf: "center",
-          }} />
+          <span
+            style={{
+              width: 8,
+              height: 8,
+              borderRadius: "50%",
+              flexShrink: 0,
+              background: dotCss,
+              boxShadow: `0 0 8px ${dotGlow1}, 0 0 20px ${dotGlow2}`,
+              opacity: isSold ? 1 : pulseOpacity,
+              alignSelf: "center",
+            }}
+          />
         );
       })()}
       <span
@@ -408,7 +564,17 @@ const SOLD_EFFECT_STYLES = `
 `;
 
 const ListingsPage = React.forwardRef(function ListingsPage(
-  { groups, absolute = false, soldTheme, lowTheme, accentCss, monthRgb, warmRgb = null, coolRgb = null, pulseOpacity = 1 },
+  {
+    groups,
+    absolute = false,
+    soldTheme,
+    lowTheme,
+    accentCss,
+    monthRgb,
+    warmRgb = null,
+    coolRgb = null,
+    pulseOpacity = 1,
+  },
   ref,
 ) {
   const wrapStyle = {
@@ -423,71 +589,34 @@ const ListingsPage = React.forwardRef(function ListingsPage(
     overflow: "hidden",
   };
 
-  // Single month: split events evenly across 2 columns, each with its own header.
-  if (groups.length === 1) {
-    const g = groups[0];
-    const half = Math.ceil(g.events.length / 2);
-    return (
-      <div ref={ref} style={wrapStyle}>
-        <style>{SOLD_EFFECT_STYLES}</style>
-        <div style={{ flex: 1, overflow: "hidden", display: "flex", gap: 28 }}>
-          <div style={{ flex: 1, minWidth: 0 }}>
-            {renderMonthHeader(g.monthName, accentCss, monthRgb)}
-            {g.events
-              .slice(0, half)
-              .map((e) => renderEventRow(e, soldTheme, lowTheme, accentCss, warmRgb, coolRgb, pulseOpacity))}
-          </div>
-          {g.events.length > half && (
-            <div style={{ flex: 1, minWidth: 0 }}>
-              {g.events
-                .slice(half)
-                .map((e) => renderEventRow(e, soldTheme, lowTheme, accentCss, warmRgb, coolRgb, pulseOpacity))}
-            </div>
-          )}
-        </div>
-      </div>
-    );
-  }
-
-  // Multiple months: distribute whole months across 2 columns, balanced by event count.
-  const numCols = 2;
-  const totalEvents = groups.reduce((s, g) => s + g.events.length, 0);
-  const target = Math.ceil(totalEvents / numCols);
-  const cols = [];
-  let cur = [],
-    count = 0;
-  for (const g of groups) {
-    const n = g.events.length;
-    if (cols.length < numCols - 1 && count > 0) {
-      const wouldBe = count + n;
-      // Split now if we've hit the target, or if adding this group overshoots it
-      // by more than staying put would (pick the closer side of target).
-      const splitNow =
-        count >= target ||
-        (wouldBe > target &&
-          Math.abs(count - target) <= Math.abs(wouldBe - target));
-      if (splitNow) {
-        cols.push(cur);
-        cur = [];
-        count = 0;
-      }
-    }
-    cur.push(g);
-    count += n;
-  }
-  cols.push(cur);
+  // Both columns come from the same splitter used for pagination, so a long
+  // month spills into column 2 (repeating its header) instead of being clipped.
+  const { cols } = splitColumns(groups);
 
   return (
     <div ref={ref} style={wrapStyle}>
       <style>{SOLD_EFFECT_STYLES}</style>
       <div style={{ flex: 1, overflow: "hidden", display: "flex", gap: 28 }}>
-        {cols.map((colGroups, ci) => (
+        {cols.map((blocks, ci) => (
           <div key={ci} style={{ flex: 1, minWidth: 0 }}>
-            {colGroups.map((g) => (
-              <div key={g.key} style={{ marginBottom: 14 }}>
+            {blocks.map((g, bi) => (
+              <div
+                key={g.key}
+                style={{
+                  marginBottom: bi < blocks.length - 1 ? GROUP_GAP : 0,
+                }}
+              >
                 {renderMonthHeader(g.monthName, accentCss, monthRgb)}
                 {g.events.map((e) =>
-                  renderEventRow(e, soldTheme, lowTheme, accentCss, warmRgb, coolRgb, pulseOpacity),
+                  renderEventRow(
+                    e,
+                    soldTheme,
+                    lowTheme,
+                    accentCss,
+                    warmRgb,
+                    coolRgb,
+                    pulseOpacity,
+                  ),
                 )}
               </div>
             ))}
@@ -1159,7 +1288,7 @@ function ListingsPanel({
                   textShadow: `0 0 10px ${lTheme.glow1}, 0 0 24px ${lTheme.glow2}`,
                 }}
               >
-                <StatusMark kind="low" size={26} color={lTheme.css} /> LOW TIX
+                <StatusMark kind="low" size={26} color={lTheme.css} /> NOW LIVE
               </span>
               {pages.length > 1 ? (
                 <span
